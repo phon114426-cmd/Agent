@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>RAM Law Agent</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sarabun',system-ui,sans-serif;background:#f8fafc;color:#1e293b;-webkit-text-size-adjust:100%}
+  ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:#f1f5f9} ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+
+  /* layout */
+  .header{background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 16px;position:sticky;top:0;z-index:20;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .header-inner{max-width:600px;margin:0 auto;display:flex;align-items:center;gap:10px}
+  .logo{width:30px;height:30px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex-shrink:0}
+  .page{max-width:600px;margin:0 auto;padding:16px}
+
+  /* api key banner */
+  .api-banner{background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:16px;margin-bottom:16px}
+  .api-banner h3{font-size:13px;font-weight:700;color:#1e40af;margin-bottom:6px}
+  .api-banner p{font-size:11px;color:#3b82f6;margin-bottom:10px;line-height:1.5}
+  .api-input-row{display:flex;gap:8px}
+  .api-input{flex:1;border:1px solid #bfdbfe;border-radius:10px;padding:8px 12px;font-size:13px;outline:none;background:#fff;min-width:0}
+  .api-input:focus{border-color:#4f46e5;box-shadow:0 0 0 2px rgba(79,70,229,.15)}
+  .api-save-btn{background:#4f46e5;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .api-ok{display:flex;align-items:center;gap:8px;font-size:12px;color:#16a34a}
+  .api-change{background:none;border:none;color:#4f46e5;font-size:11px;cursor:pointer;text-decoration:underline;margin-left:auto}
+
+  /* course list */
+  .section-label{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+  .course-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:8px;transition:border-color .15s,box-shadow .15s;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+  .course-card:active{border-color:#6366f1;box-shadow:0 0 0 2px rgba(99,102,241,.15)}
+  .course-card.drag-over{border-color:#4f46e5;box-shadow:0 4px 12px rgba(79,70,229,.15);transform:scale(1.01)}
+  .course-card.dragging{opacity:.4}
+  .drag-handle{color:#cbd5e1;font-size:16px;padding:0 2px;flex-shrink:0;cursor:grab}
+  .course-badge{font-size:11px;font-weight:800;background:#eef2ff;color:#4f46e5;padding:3px 8px;border-radius:6px;flex-shrink:0}
+  .course-info{flex:1;min-width:0}
+  .course-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px}
+  .tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600}
+  .tag-pdf{background:#f1f5f9;color:#64748b}
+  .tag-done{background:#dcfce7;color:#16a34a}
+  .course-name{font-size:13px;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .course-actions{display:flex;gap:4px;flex-shrink:0}
+  .icon-btn{width:30px;height:30px;border:none;background:none;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:#94a3b8;transition:background .15s,color .15s}
+  .icon-btn:hover,.icon-btn:active{background:#f1f5f9;color:#334155}
+  .add-course-btn{width:100%;padding:11px;border:2px dashed #c7d2fe;border-radius:14px;background:#fff;color:#6366f1;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s,border-color .15s;margin-top:4px}
+  .add-course-btn:hover,.add-course-btn:active{background:#eef2ff;border-color:#818cf8}
+
+  /* workspace */
+  .ws-files{padding:14px;border-bottom:1px solid #f1f5f9}
+  .files-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .files-label{font-size:11px;font-weight:700;color:#64748b}
+  .file-count-badge{font-size:10px;font-weight:700;background:#eef2ff;color:#4f46e5;padding:2px 8px;border-radius:20px}
+  .drop-zone{border:2px dashed #cbd5e1;border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+  .drop-zone:hover,.drop-zone.drag{border-color:#818cf8;background:#eef2ff}
+  .drop-zone-icon{font-size:22px;margin-bottom:4px}
+  .drop-zone-text{font-size:12px;color:#475569;font-weight:600}
+  .drop-zone-sub{font-size:11px;color:#94a3b8;margin-top:2px}
+  .file-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .file-chip{display:flex;align-items:center;gap:4px;background:#f1f5f9;border-radius:20px;padding:3px 10px 3px 8px;font-size:11px;color:#475569}
+  .file-chip button{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:12px;line-height:1;padding:0;margin-left:2px}
+  .file-chip button:hover{color:#ef4444}
+
+  /* tabs */
+  .tabs{display:flex;border-bottom:1px solid #e2e8f0}
+  .tab-btn{flex:1;padding:10px 4px;border:none;border-bottom:2.5px solid transparent;background:none;font-size:12px;font-weight:700;color:#94a3b8;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:color .15s,border-color .15s}
+  .tab-btn.active-analyze{border-color:#4f46e5;color:#4f46e5;background:#f5f3ff}
+  .tab-btn.active-predict{border-color:#e11d48;color:#e11d48;background:#fff1f2}
+  .tab-btn.active-scope{border-color:#16a34a;color:#16a34a;background:#f0fdf4}
+
+  /* tab body */
+  .tab-body{padding:14px;overflow-y:auto;flex:1}
+  .run-btn{width:100%;padding:10px;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;margin-bottom:10px}
+  .run-btn:disabled{background:#cbd5e1!important;cursor:not-allowed}
+  .btn-analyze{background:#4f46e5}
+  .btn-predict{background:#e11d48}
+  .btn-scope{background:#16a34a}
+  .result-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;font-size:12px;color:#334155;white-space:pre-wrap;line-height:1.7;word-break:break-word}
+  .empty-hint{text-align:center;padding:30px 0;color:#94a3b8;font-size:12px}
+  .error-box{background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:10px 12px;font-size:12px;color:#be123c;margin-bottom:10px}
+
+  /* loading dots */
+  .loading-row{display:flex;align-items:center;gap:6px;padding:6px 0 10px}
+  .dot{width:7px;height:7px;background:#818cf8;border-radius:50%;animation:bounce .6s infinite alternate}
+  .dot:nth-child(2){animation-delay:.2s}
+  .dot:nth-child(3){animation-delay:.4s}
+  @keyframes bounce{to{transform:translateY(-5px);opacity:.5}}
+  .loading-text{font-size:11px;color:#94a3b8}
+
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:0 16px 24px}
+  .modal{background:#fff;border-radius:20px;width:100%;max-width:480px;padding:20px;box-shadow:0 20px 40px rgba(0,0,0,.2)}
+  .modal h3{font-size:15px;font-weight:800;color:#1e293b;margin-bottom:14px}
+  .form-group{margin-bottom:12px}
+  .form-label{font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:5px}
+  .form-input{width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:14px;outline:none;transition:border-color .15s}
+  .form-input:focus{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+  .modal-actions{display:flex;gap:8px;margin-top:16px}
+  .btn-cancel{flex:1;padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;font-size:13px;font-weight:600;color:#475569;cursor:pointer}
+  .btn-save{flex:1;padding:10px;border:none;border-radius:10px;background:#4f46e5;color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+  .btn-save:disabled{background:#cbd5e1;cursor:not-allowed}
+
+  /* util */
+  .flex{display:flex} .items-center{align-items:center} .gap-2{gap:8px} .flex-1{flex:1} .min-w-0{min-width:0} .ml-auto{margin-left:auto}
+  .text-sm{font-size:13px} .text-xs{font-size:11px} .font-bold{font-weight:700} .truncate{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+// ── storage ──────────────────────────────────────────────────────────────────
+const COURSES_KEY = "rla_courses_v2";
+const API_KEY_KEY = "rla_apikey";
+
+const DEFAULT_COURSES = [
+  { id:"LAW1101", code:"LAW1101", name:"ความรู้เบื้องต้นเกี่ยวกับกฎหมายทั่วไป", files:[], results:{} },
+  { id:"LAW2101", code:"LAW2101", name:"กฎหมายแพ่ง: หลักทั่วไป", files:[], results:{} },
+  { id:"LAW2105", code:"LAW2105", name:"กฎหมายแพ่ง: ละเมิด จัดการงานนอกสั่ง ลาภมิควรได้", files:[], results:{} },
+  { id:"LAW2110", code:"LAW2110", name:"กฎหมายแพ่ง: ซื้อขาย แลกเปลี่ยน ให้", files:[], results:{} },
+  { id:"LAW3106", code:"LAW3106", name:"กฎหมายอาญา: ภาคความผิด", files:[], results:{} },
+  { id:"LAW3108", code:"LAW3108", name:"กฎหมายวิธีพิจารณาความแพ่ง", files:[], results:{} },
+  { id:"LAW3112", code:"LAW3112", name:"กฎหมายวิธีพิจารณาความอาญา", files:[], results:{} },
+  { id:"LAW4104", code:"LAW4104", name:"กฎหมายระหว่างประเทศแผนกคดีบุคคล", files:[], results:{} },
+];
+
+function loadCourses(){
+  try{ const r=localStorage.getItem(COURSES_KEY); if(r) return JSON.parse(r); }catch{}
+  return DEFAULT_COURSES;
+}
+function saveCourses(courses){
+  const s=courses.map(c=>({...c, files:c.files.map(f=>({name:f.name,size:f.size}))}));
+  try{ localStorage.setItem(COURSES_KEY, JSON.stringify(s)); }catch{}
+}
+function loadApiKey(){ try{ return localStorage.getItem(API_KEY_KEY)||""; }catch{ return ""; } }
+function saveApiKey(k){ try{ localStorage.setItem(API_KEY_KEY,k); }catch{} }
+
+// ── api ───────────────────────────────────────────────────────────────────────
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(",")[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
+
+async function callClaude(apiKey, system, userContent){
+  const resp = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-6",
+      max_tokens:2000,
+      system,
+      messages:[{role:"user",content:userContent}]
+    })
+  });
+  if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.error?.message||`HTTP ${resp.status}`); }
+  const data=await resp.json();
+  return data.content?.map(b=>b.text||"").join("")||"";
+}
+
+// ── tab config ────────────────────────────────────────────────────────────────
+const TABS=[
+  {
+    key:"analyze", label:"วิเคราะห์มาตรา", icon:"📊",
+    activeClass:"active-analyze", btnClass:"btn-analyze", btnLabel:"วิเคราะห์ธงคำตอบ",
+    system:(c)=>`คุณคือผู้เชี่ยวชาญวิเคราะห์ข้อสอบกฎหมายมหาวิทยาลัยรามคำแหง
+ตอบเป็น JSON อย่างเดียว ห้ามมี markdown backtick หรือข้อความอื่นใดทั้งสิ้น ตอบแค่ { ... } เท่านั้น
+รูปแบบ JSON ที่ต้องการ:
+{"articles":[{"no":"มาตรา 5","topic":"หัวข้อของมาตรานี้","count":4,"scope":"ส่วนกลาง","years":["ซอมภาค 2/2567"]}],"pattern":"อธิบาย pattern","top_priority":["มาตรา X — เหตุผล"]}
+โดย scope ให้ใส่: ส่วนกลาง หรือ ภูมิภาค หรือ ทั้งคู่ และเรียง articles จาก count มากไปน้อย`,
+    prompt:(c)=>`วิเคราะห์ธงคำตอบข้อสอบวิชา ${c.code} ${c.name} จากไฟล์ทั้งหมดที่ให้มา`,
+  },
+  {
+    key:"predict", label:"เก็งข้อสอบ", icon:"🎯",
+    activeClass:"active-predict", btnClass:"btn-predict", btnLabel:"เก็งข้อสอบเทอมหน้า",
+    system:(c)=>`คุณคือผู้เชี่ยวชาญเก็งข้อสอบกฎหมายรามคำแหง วิเคราะห์ธงคำตอบหลายปีแล้วเก็งข้อสอบเทอมหน้า
+
+ตอบในรูปแบบ:
+
+## ข้อสอบที่น่าจะออก (เรียงตามความน่าจะเป็น)
+
+### อันดับ 1 — [ชื่อประเด็น]
+มาตราที่เกี่ยวข้อง: ม.XXX
+เหตุผล: [ทำไมน่าออก เช่น ออกทุกปี / ยังไม่ออก 2 ปี / core concept]
+ตัวอย่างโจทย์: [ยกตัวอย่างโจทย์สั้นๆ]
+
+[ทำแบบนี้ 5 อันดับ]
+
+## สรุปหัวข้อที่ต้องเตรียม
+[bullet point 5-8 ข้อ]
+
+ตอบเป็นภาษาไทยเท่านั้น`,
+    prompt:(c)=>`เก็งข้อสอบเทอมหน้าวิชา ${c.code} ${c.name} โดยวิเคราะห์ trend จากธงคำตอบทั้งหมด`,
+  },
+  {
+    key:"scope", label:"Scope การอ่าน", icon:"📋",
+    activeClass:"active-scope", btnClass:"btn-scope", btnLabel:"สร้าง Scope",
+    system:(c)=>`คุณคือที่ปรึกษาการเรียนกฎหมายรามคำแหง เป้าหมายคือช่วยให้นักศึกษาสอบผ่านโดยใช้เวลาน้อยที่สุด
+
+สร้าง Scope ในรูปแบบ:
+
+## Scope สอบผ่าน — ${c.code}
+
+### 🔴 Must Know (ห้ามพลาด)
+[มาตรา + เหตุผล 1 บรรทัด]
+
+### 🟡 Should Know (ควรรู้)
+[มาตรา + เหตุผล 1 บรรทัด]
+
+### 🟢 Nice to Know (รู้ไว้เผื่อ)
+[มาตรา + เหตุผล 1 บรรทัด]
+
+## แผนอ่านหนังสือ (แนะนำ)
+[ลำดับการอ่าน + เวลาที่ควรใช้]
+
+## มาตราที่ข้ามได้เลย
+[มาตราที่ไม่เคยออกหรือออกน้อยมาก]
+
+ตอบเป็นภาษาไทยเท่านั้น`,
+    prompt:(c)=>`สร้าง Scope การอ่านเพื่อสอบผ่านวิชา ${c.code} ${c.name} จากธงคำตอบทั้งหมด`,
+  },
+];
+
+// ── components ────────────────────────────────────────────────────────────────
+function LoadingDots(){
+  return (
+    <div className="loading-row">
+      <div className="dot"/><div className="dot"/><div className="dot"/>
+      <span className="loading-text">AI กำลังวิเคราะห์...</span>
+    </div>
+  );
+}
+
+function ApiKeyBanner({ onSaved }){
+  const [key,setKey]=useState(loadApiKey());
+  const [editing,setEditing]=useState(!loadApiKey());
+  const saved=loadApiKey();
+
+  const save=()=>{
+    const k=key.trim();
+    if(!k) return;
+    saveApiKey(k);
+    setEditing(false);
+    onSaved(k);
+  };
+
+  if(!editing && saved){
+    return (
+      <div className="api-banner">
+        <div className="api-ok">
+          <span>✅</span>
+          <span style={{fontWeight:700,color:"#15803d"}}>API Key บันทึกแล้ว</span>
+          <span style={{color:"#86efac",fontSize:11}}>{saved.slice(0,18)}…</span>
+          <button className="api-change" onClick={()=>setEditing(true)}>เปลี่ยน</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="api-banner">
+      <h3>🔑 ใส่ Anthropic API Key</h3>
+      <p>Key จะเก็บใน localStorage บนเครื่องคุณเท่านั้น ไม่ถูกส่งไปที่อื่น<br/>
+      สร้าง Key ได้ที่ console.anthropic.com/settings/keys</p>
+      <div className="api-input-row">
+        <input className="api-input" type="password" placeholder="sk-ant-api03-…"
+          value={key} onChange={e=>setKey(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&save()} />
+        <button className="api-save-btn" onClick={save}>บันทึก</button>
+      </div>
+    </div>
+  );
+}
+
+function DropZone({ onFiles, count }){
+  const ref=useRef();
+  const [drag,setDrag]=useState(false);
+  return (
+    <div className={"drop-zone"+(drag?" drag":"")}
+      onDragOver={e=>{e.preventDefault();setDrag(true)}}
+      onDragLeave={()=>setDrag(false)}
+      onDrop={e=>{e.preventDefault();setDrag(false);onFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==="application/pdf"))}}
+      onClick={()=>ref.current.click()}
+    >
+      <input ref={ref} type="file" accept=".pdf" multiple style={{display:"none"}}
+        onChange={e=>onFiles(Array.from(e.target.files))} />
+      <div className="drop-zone-icon">📄</div>
+      <div className="drop-zone-text">
+        {count>0?`${count} ไฟล์อยู่ในระบบแล้ว — เพิ่มไฟล์อีก`:"แตะหรือวางไฟล์ PDF ธงคำตอบ"}
+      </div>
+      <div className="drop-zone-sub">รองรับหลายไฟล์พร้อมกัน</div>
+    </div>
+  );
+}
+
+
+function AnalyzeChart({data}){
+  let parsed = null;
+  try {
+    // strip any markdown fences and extract JSON object
+    let s = (typeof data === "string") ? data : JSON.stringify(data);
+    s = s.replace(/```json/g,"").replace(/```/g,"").trim();
+    // find first { to last }
+    const first = s.indexOf("{");
+    const last = s.lastIndexOf("}");
+    if(first!==-1 && last!==-1) s = s.slice(first, last+1);
+    parsed = JSON.parse(s);
+  } catch(e) {
+    return <div className="result-box" style={{whiteSpace:"pre-wrap"}}>{data}</div>;
+  }
+  if(!parsed || !parsed.articles || !parsed.articles.length)
+    return <div className="result-box" style={{whiteSpace:"pre-wrap"}}>{data}</div>;
+
+  const articles = parsed.articles;
+  const scopeBadge = (s) => {
+    if(!s) return {bg:"#e2e8f0",color:"#64748b"};
+    if(s.includes("ทั้งคู่")) return {bg:"#ede9fe",color:"#7c3aed"};
+    if(s.includes("ภูมิภาค")) return {bg:"#fef3c7",color:"#b45309"};
+    return {bg:"#dbeafe",color:"#1d4ed8"};
+  };
+
+  return (
+    <div style={{paddingBottom:16}}>
+
+      {/* table */}
+      <div style={{background:"#fff",borderRadius:12,border:"1px solid #e2e8f0",overflow:"hidden",marginBottom:14}}>
+        <div style={{background:"#1e293b",padding:"10px 12px"}}>
+          <span style={{fontSize:12,fontWeight:700,color:"#fff"}}>📋 ตารางมาตราที่ออกสอบ</span>
+        </div>
+        {/* header */}
+        <div style={{display:"grid",gridTemplateColumns:"80px 1fr 44px 70px",background:"#f8fafc",borderBottom:"1px solid #e2e8f0",padding:"6px 10px",gap:6}}>
+          {["มาตรา","หัวข้อ","ครั้ง","Scope"].map(h=>(
+            <span key={h} style={{fontSize:10,fontWeight:700,color:"#64748b"}}>{h}</span>
+          ))}
+        </div>
+        {/* rows */}
+        {articles.map((a,i)=>{
+          const bc = scopeBadge(a.scope);
+          return (
+            <div key={i} style={{display:"grid",gridTemplateColumns:"80px 1fr 44px 70px",padding:"8px 10px",gap:6,borderBottom:i<articles.length-1?"1px solid #f1f5f9":"none",alignItems:"start",background:i%2===0?"#fff":"#fafafa"}}>
+              <span style={{fontSize:11,fontWeight:700,color:"#1e293b"}}>{a.no}</span>
+              <span style={{fontSize:10,color:"#334155",lineHeight:1.5}}>{a.topic}</span>
+              <span style={{fontSize:13,fontWeight:800,color:"#0f172a",textAlign:"center"}}>{a.count}</span>
+              <span style={{fontSize:9,fontWeight:700,background:bc.bg,color:bc.color,borderRadius:6,padding:"2px 5px",textAlign:"center",lineHeight:1.6}}>{a.scope}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* top priority */}
+      {parsed.top_priority && parsed.top_priority.length>0 && (
+        <div style={{background:"#fefce8",borderRadius:12,border:"1px solid #fde68a",padding:"12px 10px",marginBottom:12}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#92400e",marginBottom:8}}>⭐ มาตราที่ควรโฟกัส</div>
+          {parsed.top_priority.map((t,i)=>(
+            <div key={i} style={{fontSize:11,color:"#78350f",marginBottom:6,paddingLeft:8,borderLeft:"3px solid #fbbf24",lineHeight:1.6}}>{t}</div>
+          ))}
+        </div>
+      )}
+
+      {/* pattern */}
+      {parsed.pattern && (
+        <div style={{background:"#f0f9ff",borderRadius:12,border:"1px solid #bae6fd",padding:"12px 10px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#0369a1",marginBottom:6}}>🔍 Pattern การออกข้อสอบ</div>
+          <div style={{fontSize:11,color:"#0c4a6e",lineHeight:1.7}}>{parsed.pattern}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function Workspace({ course, apiKey, onUpdate }){
+  const [tab,setTab]=useState(0);
+  const [fileObjs,setFileObjs]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+
+  const addFiles=files=>{
+    setFileObjs(prev=>{
+      const ex=new Set(prev.map(f=>f.name+f.size));
+      const add=files.filter(f=>!ex.has(f.name+f.size));
+      const next=[...prev,...add];
+      onUpdate(course.id,{files:next.map(f=>({name:f.name,size:f.size}))});
+      return next;
+    });
+  };
+
+  const removeFile=i=>{
+    setFileObjs(prev=>{
+      const next=prev.filter((_,j)=>j!==i);
+      onUpdate(course.id,{files:next.map(f=>({name:f.name,size:f.size}))});
+      return next;
+    });
+  };
+
+  const [loadingMsg, setLoadingMsg]=useState("");
+
+  // chunk files into groups of CHUNK_SIZE to avoid rate limit
+  const CHUNK_SIZE = 2;
+  const CHUNK_DELAY_SECS = 8;
+
+  const countdown=async(secs)=>{
+    for(let s=secs;s>0;s--){
+      setLoadingMsg(`⏳ รอ ${s} วินาที ก่อนชุดถัดไป...`);
+      await new Promise(r=>setTimeout(r,1000));
+    }
+  };
+
+  const runChunked=async()=>{
+    if(!fileObjs.length){setError("กรุณาอัพโหลด PDF ธงคำตอบก่อน");return;}
+    if(!apiKey){setError("กรุณาใส่ API Key ก่อน");return;}
+    setLoading(true); setError(""); setLoadingMsg("");
+    const t=TABS[tab];
+    try{
+      const chunks=[];
+      for(let i=0;i<fileObjs.length;i+=CHUNK_SIZE) chunks.push(fileObjs.slice(i,i+CHUNK_SIZE));
+
+      let partials=[];
+      for(let ci=0;ci<chunks.length;ci++){
+        const chunk=chunks[ci];
+        setLoadingMsg(`📄 วิเคราะห์ชุดที่ ${ci+1}/${chunks.length} (${chunk.length} ไฟล์ จากทั้งหมด ${fileObjs.length} ไฟล์)...`);
+        const b64s=await Promise.all(chunk.map(fileToBase64));
+        const chunkPrompt = chunks.length>1
+          ? `${t.prompt(course)}\n\n[นี่คือชุดที่ ${ci+1} จาก ${chunks.length} ชุด — วิเคราะห์เฉพาะไฟล์ชุดนี้ก่อน แล้วจะนำมารวมกัน]`
+          : t.prompt(course);
+        const content=[
+          ...b64s.map((data,j)=>({type:"document",source:{type:"base64",media_type:"application/pdf",data},title:chunk[j].name})),
+          {type:"text",text:chunkPrompt}
+        ];
+        const partial=await callClaude(apiKey,t.system(course),content);
+        partials.push(partial);
+        // countdown delay between chunks to avoid rate limit
+        if(ci<chunks.length-1) await countdown(CHUNK_DELAY_SECS);
+      }
+
+      let finalText="";
+      if(partials.length===1){
+        finalText=partials[0];
+      } else {
+        // merge pass
+        setLoadingMsg("รวมผลการวิเคราะห์ทั้งหมด...");
+        const mergeContent=[{type:"text",text:`รวมและสรุปผลการวิเคราะห์ต่อไปนี้เข้าด้วยกันเป็นรายงานเดียวสำหรับวิชา ${course.code} ${course.name}:\n\n${partials.map((p,i)=>`=== ส่วนที่ ${i+1} ===\n${p}`).join("\n\n")}`}];
+        finalText=await callClaude(apiKey,t.system(course),mergeContent);
+      }
+
+      onUpdate(course.id,{results:{...course.results,[t.key]:finalText}});
+      setLoadingMsg("");
+    }catch(e){
+      setError("เกิดข้อผิดพลาด: "+e.message);
+    }finally{ setLoading(false); setLoadingMsg(""); }
+  };
+
+  const result=course.results?.[TABS[tab].key];
+  // saved file metadata (names only, no File objects after reload)
+  const savedFileMeta=course.files||[];
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 57px)"}}>
+      {/* file zone */}
+      <div className="ws-files">
+        <div className="files-header">
+          <span className="files-label">📁 ไฟล์ธงคำตอบ</span>
+          {fileObjs.length>0
+            ? <span className="file-count-badge">{fileObjs.length} ไฟล์ (พร้อมใช้)</span>
+            : savedFileMeta.length>0
+              ? <span className="file-count-badge" style={{background:"#fef9c3",color:"#92400e"}}>{savedFileMeta.length} ไฟล์ (โหลดใหม่)</span>
+              : null
+          }
+        </div>
+        <DropZone onFiles={addFiles} count={fileObjs.length}/>
+        {/* show loaded File objects */}
+        {fileObjs.length>0 && (
+          <div className="file-chips">
+            {fileObjs.map((f,i)=>(
+              <div key={i} className="file-chip">
+                <span style={{maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</span>
+                <button onClick={()=>removeFile(i)}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* show saved metadata when no File objects loaded yet */}
+        {fileObjs.length===0 && savedFileMeta.length>0 && (
+          <div style={{marginTop:6,padding:"6px 10px",background:"#fefce8",border:"1px solid #fde68a",borderRadius:8,fontSize:11,color:"#78350f"}}>
+            ⚠️ ไฟล์ถูกลบออกจากหน่วยความจำเมื่อปิดแอป — กรุณาอัพโหลดไฟล์ใหม่เพื่อวิเคราะห์อีกครั้ง
+            <div style={{marginTop:4,color:"#92400e",fontWeight:700}}>ไฟล์เดิม: {savedFileMeta.map(f=>f.name).join(", ")}</div>
+          </div>
+        )}
+      </div>
+
+      {/* tabs */}
+      <div className="tabs">
+        {TABS.map((t,i)=>(
+          <button key={t.key} className={"tab-btn"+(tab===i?" "+t.activeClass:"")} onClick={()=>setTab(i)}>
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* body */}
+      <div className="tab-body">
+        {error && <div className="error-box">{error}</div>}
+        <button className={"run-btn "+TABS[tab].btnClass} onClick={runChunked} disabled={loading||!fileObjs.length}>
+          {loading?(loadingMsg||"กำลังวิเคราะห์..."):TABS[tab].icon+" "+TABS[tab].btnLabel}
+        </button>
+        {loading && (
+          <div className="loading-row">
+            <div className="dot"/><div className="dot"/><div className="dot"/>
+            <span className="loading-text">{loadingMsg||"AI กำลังวิเคราะห์..."}</span>
+          </div>
+        )}
+        {result && (
+          <div>
+            {fileObjs.length===0 && savedFileMeta.length>0 && (
+              <div style={{fontSize:11,color:"#16a34a",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"6px 10px",marginBottom:8}}>
+                ✅ ผลลัพธ์ที่บันทึกไว้ก่อนหน้า (อัพโหลดไฟล์ใหม่เพื่อวิเคราะห์อีกครั้ง)
+              </div>
+            )}
+            {tab===0 ? <AnalyzeChart data={result}/> : <div className="result-box">{result}</div>}
+          </div>
+        )}
+        {!result && !loading && (
+          <div className="empty-hint">
+            {fileObjs.length?"กดปุ่มด้านบนเพื่อวิเคราะห์":"อัพโหลด PDF ธงคำตอบเพื่อเริ่มต้น"}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CourseModal({ initial, onSave, onClose }){
+  const [code,setCode]=useState(initial?.code||"");
+  const [name,setName]=useState(initial?.name||"");
+  return (
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <h3>{initial?"แก้ไขวิชา":"เพิ่มวิชาใหม่"}</h3>
+        <div className="form-group">
+          <label className="form-label">รหัสวิชา</label>
+          <input className="form-input" placeholder="เช่น LAW3108" value={code}
+            onChange={e=>setCode(e.target.value)} onKeyDown={e=>e.key==="Enter"&&name&&onSave({code:code.toUpperCase(),name})}/>
+        </div>
+        <div className="form-group">
+          <label className="form-label">ชื่อวิชา</label>
+          <input className="form-input" placeholder="เช่น กฎหมายวิธีพิจารณาความแพ่ง" value={name}
+            onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&code&&onSave({code:code.toUpperCase(),name})}/>
+        </div>
+        <div className="modal-actions">
+          <button className="btn-cancel" onClick={onClose}>ยกเลิก</button>
+          <button className="btn-save" disabled={!code||!name} onClick={()=>onSave({code:code.toUpperCase(),name})}>บันทึก</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── main ──────────────────────────────────────────────────────────────────────
+function App(){
+  const [courses,setCourses]=useState(loadCourses);
+  const [apiKey,setApiKey]=useState(loadApiKey);
+  const [view,setView]=useState("list");       // "list" | "workspace"
+  const [selectedId,setSelectedId]=useState(null);
+  const [modal,setModal]=useState(null);       // null | "add" | {edit:course}
+  const [dragging,setDragging]=useState(null);
+  const [dragOver,setDragOver]=useState(null);
+  // touch-drag state
+  const touchDragId=useRef(null);
+  const touchDragOver=useRef(null);
+
+  const selected=courses.find(c=>c.id===selectedId);
+
+  useEffect(()=>{ saveCourses(courses); },[courses]);
+
+  const updateCourse=(id,patch)=>setCourses(prev=>prev.map(c=>c.id===id?{...c,...patch}:c));
+  const addCourse=({code,name})=>{ setCourses(prev=>[...prev,{id:code+"_"+Date.now(),code,name,files:[],results:{}}]); setModal(null); };
+  const editCourse=(id,data)=>{ setCourses(prev=>prev.map(c=>c.id===id?{...c,...data}:c)); setModal(null); };
+  const deleteCourse=(id)=>{ if(!confirm("ลบวิชานี้?")) return; setCourses(prev=>prev.filter(c=>c.id!==id)); if(selectedId===id){setSelectedId(null);setView("list");} };
+
+  const reorder=(fromId,toId)=>{
+    if(!fromId||fromId===toId) return;
+    setCourses(prev=>{
+      const arr=[...prev];
+      const fi=arr.findIndex(c=>c.id===fromId);
+      const ti=arr.findIndex(c=>c.id===toId);
+      const [item]=arr.splice(fi,1);
+      arr.splice(ti,0,item);
+      return arr;
+    });
+  };
+
+  // touch drag handlers
+  const onTouchStart=(id,e)=>{ touchDragId.current=id; };
+  const onTouchMove=(e)=>{
+    if(!touchDragId.current) return;
+    const el=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
+    const card=el?.closest("[data-course-id]");
+    if(card) touchDragOver.current=card.dataset.courseId;
+  };
+  const onTouchEnd=()=>{
+    if(touchDragId.current&&touchDragOver.current) reorder(touchDragId.current,touchDragOver.current);
+    touchDragId.current=null; touchDragOver.current=null;
+    setDragOver(null);
+  };
+
+  return (
+    <div>
+      {/* header */}
+      <div className="header">
+        <div className="header-inner">
+          {view==="workspace" && (
+            <button onClick={()=>setView("list")} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#64748b",marginRight:2}}>←</button>
+          )}
+          <div className="logo">ร</div>
+          <div className="flex-1 min-w-0">
+            <div style={{fontSize:13,fontWeight:800,color:"#1e293b"}}>RAM Law Agent</div>
+            {view==="workspace"&&selected
+              ? <div className="truncate" style={{fontSize:11,color:"#64748b"}}>{selected.code} · {selected.name}</div>
+              : <div style={{fontSize:11,color:"#94a3b8"}}>ผู้ช่วยวิเคราะห์ข้อสอบ</div>
+            }
+          </div>
+          {view==="list" && (
+            <button className="add-course-btn" style={{width:"auto",padding:"7px 14px",margin:0,border:"1.5px solid #c7d2fe"}}
+              onClick={()=>setModal("add")}>+ เพิ่มวิชา</button>
+          )}
+        </div>
+      </div>
+
+      {/* list view */}
+      {view==="list" && (
+        <div className="page">
+          <ApiKeyBanner onSaved={setApiKey}/>
+          <div className="section-label">วิชาของคุณ</div>
+          <p style={{fontSize:11,color:"#94a3b8",marginBottom:10}}>กดค้างเพื่อลากเรียงลำดับ · กดเพื่อเปิดวิเคราะห์</p>
+
+          {courses.map(course=>{
+            const done=Object.keys(course.results||{}).filter(k=>course.results[k]).length;
+            const fc=course.files?.length||0;
+            return (
+              <div key={course.id} data-course-id={course.id}
+                draggable
+                onDragStart={()=>setDragging(course.id)}
+                onDragOver={e=>{e.preventDefault();setDragOver(course.id)}}
+                onDrop={e=>{e.preventDefault();reorder(dragging,course.id);setDragging(null);setDragOver(null)}}
+                onDragEnd={()=>{setDragging(null);setDragOver(null)}}
+                onTouchStart={e=>onTouchStart(course.id,e)}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                className={"course-card"+(dragOver===course.id?" drag-over":"")+(dragging===course.id?" dragging":"")}
+              >
+                <div className="drag-handle">⠿</div>
+                <div className="course-info" onClick={()=>{setSelectedId(course.id);setView("workspace")}}>
+                  <div className="course-meta">
+                    <span className="course-badge">{course.code}</span>
+                    {fc>0 && <span className="tag tag-pdf">{fc} PDF</span>}
+                    {done>0 && <span className="tag tag-done">✓ {done}/3</span>}
+                  </div>
+                  <div className="course-name">{course.name}</div>
+                </div>
+                <div className="course-actions">
+                  <button className="icon-btn" onClick={e=>{e.stopPropagation();setModal({edit:course})}}>✏️</button>
+                  <button className="icon-btn" onClick={e=>{e.stopPropagation();deleteCourse(course.id)}}>🗑️</button>
+                  <button className="icon-btn" style={{fontSize:18}} onClick={()=>{setSelectedId(course.id);setView("workspace")}}>›</button>
+                </div>
+              </div>
+            );
+          })}
+
+          {courses.length===0 && (
+            <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8"}}>
+              <div style={{fontSize:40,marginBottom:10}}>⚖️</div>
+              <div style={{fontSize:13}}>ยังไม่มีวิชา — กด "+ เพิ่มวิชา"</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* workspace */}
+      {view==="workspace" && selected && (
+        <Workspace course={selected} apiKey={apiKey} onUpdate={updateCourse}/>
+      )}
+
+      {/* modals */}
+      {modal==="add" && <CourseModal onSave={addCourse} onClose={()=>setModal(null)}/>}
+      {modal?.edit && <CourseModal initial={modal.edit} onSave={d=>editCourse(modal.edit.id,d)} onClose={()=>setModal(null)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
